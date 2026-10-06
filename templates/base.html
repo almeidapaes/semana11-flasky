@@ -1,12 +1,8 @@
 {% extends "bootstrap/base.html" %}
 
-
 {% block title %}
-
-Avaliação contínua: Aula 060.C
-
+Avaliação contínua: Aula 070
 {% endblock %}
-
 
 {% block navbar %}
 
@@ -29,30 +25,23 @@ Avaliação contínua: Aula 060.C
                 </span>
 
                 <span class="icon-bar"></span>
-
                 <span class="icon-bar"></span>
-
                 <span class="icon-bar"></span>
 
             </button>
-
 
             <a
                 class="navbar-brand"
                 href="/">
 
                 Avaliação contínua:
-                <strong>
-                    Aula 060.C
-                </strong>
+                <strong>Aula 070</strong>
 
             </a>
 
         </div>
 
-
-        <div
-            class="navbar-collapse collapse">
+        <div class="navbar-collapse collapse">
 
             <ul class="nav navbar-nav">
 
@@ -60,6 +49,14 @@ Avaliação contínua: Aula 060.C
 
                     <a href="/">
                         Home
+                    </a>
+
+                </li>
+
+                <li>
+
+                    <a href="/emailsEnviados">
+                        E-mails enviados
                     </a>
 
                 </li>
@@ -74,30 +71,9 @@ Avaliação contínua: Aula 060.C
 
 {% endblock %}
 
-
 {% block content %}
 
 <div class="container">
-
-    {% for message in get_flashed_messages() %}
-
-        <div class="alert alert-warning">
-
-            <button
-                type="button"
-                class="close"
-                data-dismiss="alert">
-
-                &times;
-
-            </button>
-
-            {{ message }}
-
-        </div>
-
-    {% endfor %}
-
 
     {% block page_content %}
     {% endblock %}
@@ -105,7 +81,6 @@ Avaliação contínua: Aula 060.C
 </div>
 
 {% endblock %}
-
 
 {% block scripts %}
 

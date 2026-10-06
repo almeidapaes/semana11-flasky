@@ -2,65 +2,71 @@
 
 {% import "bootstrap/wtf.html" as wtf %}
 
-
 {% block title %}
-Avaliação contínua: Aula 060.C
+Avaliação contínua: Aula 070
 {% endblock %}
-
 
 {% block page_content %}
 
 <div class="page-header">
 
     <h1>
+
         Olá,
+
         {% if name %}
+
             {{ name }}
+
         {% else %}
-            Stranger!
+
+            Stranger
+
         {% endif %}!
+
     </h1>
 
     {% if name %}
 
         {% if known %}
 
-            <p>Feliz em vê-lo novamente!</p>
+            <p>
+                Feliz em vê-lo novamente!
+            </p>
 
         {% else %}
 
-            <p>Prazer em conhecê-lo!</p>
+            <p>
+                Prazer em conhecê-lo!
+            </p>
 
         {% endif %}
 
     {% else %}
 
-        <p>Prazer em conhecê-lo!</p>
+        <p>
+            Prazer em conhecê-lo!
+        </p>
+
+    {% endif %}
+
+    {% if email_sent %}
+
+        <p>
+            E-mail enviado para o
+            <strong>Administrador do sistema</strong>,
+            notificando o cadastro de um novo usuário.
+        </p>
 
     {% endif %}
 
 </div>
 
-
-<!-- ====================================================== -->
-<!-- FORMULÁRIO -->
-<!-- ====================================================== -->
-
 {{ wtf.quick_form(form) }}
-
-
-<!-- ====================================================== -->
-<!-- RELAÇÃO DE USUÁRIOS -->
-<!-- ====================================================== -->
 
 <h2>
     Relação de usuários cadastrados
 </h2>
-
-<p style="font-size: 20px;">
-    Quantidade: {{ users_count }}
-</p>
-
 
 <table class="table">
 
@@ -79,7 +85,6 @@ Avaliação contínua: Aula 060.C
         </tr>
 
     </thead>
-
 
     <tbody>
 
@@ -112,88 +117,5 @@ Avaliação contínua: Aula 060.C
     </tbody>
 
 </table>
-
-
-<!-- ====================================================== -->
-<!-- RELAÇÃO DE FUNÇÕES -->
-<!-- ====================================================== -->
-
-<h2>
-    Relação de funções cadastradas
-</h2>
-
-<p style="font-size: 20px;">
-    Quantidade: {{ roles_count }}
-</p>
-
-
-<table class="table">
-
-    <thead>
-
-        <tr>
-
-            <th style="width: 32%;">
-                Funções
-            </th>
-
-            <th>
-                Usuários
-            </th>
-
-        </tr>
-
-    </thead>
-
-
-    <tbody>
-
-        {% for item in grouped_roles %}
-
-        <tr>
-
-            <!-- FUNÇÃO -->
-
-            <td>
-
-                {{ item.role.name }}
-
-            </td>
-
-
-            <!-- USUÁRIOS DA FUNÇÃO -->
-
-            <td>
-
-                {% if item.users %}
-
-                    <ol>
-
-                        {% for user in item.users %}
-
-                        <li>
-                            {{ user.username }}
-                        </li>
-
-                        {% endfor %}
-
-                    </ol>
-
-                {% else %}
-
-                    Nenhum usuário cadastrado.
-
-                {% endif %}
-
-            </td>
-
-        </tr>
-
-        {% endfor %}
-
-    </tbody>
-
-</table>
-
 
 {% endblock %}

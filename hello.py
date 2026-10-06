@@ -1,12 +1,14 @@
 import os
-import requests
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
+import requests
 from dotenv import load_dotenv
-from flask import Flask, render_template, session, redirect, url_for, flash
+from flask import Flask, render_template, session, redirect, url_for
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, SelectField
+from wtforms import StringField, SubmitField, BooleanField
 from wtforms.validators import DataRequired
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -14,9 +16,7 @@ from flask_migrate import Migrate
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
-load_dotenv(
-    os.path.join(basedir, '.env')
-)
+load_dotenv(os.path.join(basedir, '.env'))
 
 app = Flask(__name__)
 
@@ -43,6 +43,8 @@ API_FROM = os.getenv('API_FROM')
 FLASKY_NAME = os.getenv('FLASKY_NAME')
 FLASKY_PRONTUARIO = os.getenv('FLASKY_PRONTUARIO')
 
+PROFESSOR_EMAIL = 'flaskaulasweb@zohomail.com'
+
 
 class Role(db.Model):
 
@@ -55,8 +57,7 @@ class Role(db.Model):
 
     name = db.Column(
         db.String(64),
-        unique=True,
-        nullable=False
+        unique=True
     )
 
     users = db.relationship(
@@ -81,8 +82,7 @@ class User(db.Model):
     username = db.Column(
         db.String(64),
         unique=True,
-        index=True,
-        nullable=False
+        index=True
     )
 
     role_id = db.Column(
@@ -94,58 +94,85 @@ class User(db.Model):
         return '<User %r>' % self.username
 
 
+class Email(db.Model):
+
+    __tablename__ = 'emails'
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    sender = db.Column(
+        db.String(64),
+        nullable=False
+    )
+
+    recipients = db.Column(
+        db.Text,
+        nullable=False
+    )
+
+    subject = db.Column(
+        db.String(255),
+        nullable=False
+    )
+
+    text = db.Column(
+        db.Text,
+        nullable=False
+    )
+
+    body = db.Column(
+        db.Text,
+        nullable=False
+    )
+
+    timestamp = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(
+            ZoneInfo('America/Sao_Paulo')
+        ),
+        nullable=False
+    )
+
+    def __repr__(self):
+        return '<Email %r>' % self.id
+
+
 class NameForm(FlaskForm):
 
     name = StringField(
-        'What is your name?',
+        'Qual é o seu nome?',
         validators=[DataRequired()]
     )
 
-    role = SelectField(
-        'Role?:',
-        choices=[
-            ('Administrator', 'Administrator'),
-            ('Moderator', 'Moderator'),
-            ('User', 'User')
-        ],
-        validators=[DataRequired()]
+    send_professor = BooleanField(
+        'Deseja enviar e-mail para flaskaulasweb@zohomail.com?'
     )
 
     submit = SubmitField('Submit')
 
 
-def create_default_roles():
+def get_user_role():
 
-    role_names = [
-        'Administrator',
-        'Moderator',
-        'User'
-    ]
+    role = Role.query.filter_by(
+        name='User'
+    ).first()
 
-    roles = {}
+    if role is None:
 
-    for role_name in role_names:
+        role = Role(
+            name='User'
+        )
 
-        role = Role.query.filter_by(
-            name=role_name
-        ).first()
+        db.session.add(role)
+        db.session.commit()
 
-        if role is None:
-
-            role = Role(
-                name=role_name
-            )
-
-            db.session.add(role)
-
-        roles[role_name] = role
-
-    db.session.commit()
-
-    return roles
+    return role
 
 
-def send_registration_email(user):
+def send_registration_email(user, recipients):
 
     if not API_URL:
         raise RuntimeError(
@@ -167,18 +194,18 @@ def send_registration_email(user):
             'FLASKY_ADMIN não configurado.'
         )
 
-    recipients = [
-        'flaskaulasweb@zohomail.com',
-        FLASKY_ADMIN
-    ]
+    subject = '[Flasky] Novo usuário'
+
+    text = f'Novo usuário cadastrado: {user.username}'
 
     body = f"""
 Novo usuário cadastrado.
 
 Prontuário: {FLASKY_PRONTUARIO}
+
 Nome do aluno: {FLASKY_NAME}
+
 Usuário cadastrado: {user.username}
-Função: {user.role.name}
 """
 
     response = requests.post(
@@ -190,13 +217,29 @@ Função: {user.role.name}
         data={
             'from': API_FROM,
             'to': recipients,
-            'subject': 'Novo usuário cadastrado',
+            'subject': subject,
             'text': body
         },
         timeout=15
     )
 
     response.raise_for_status()
+
+    recipients_text = ', '.join(
+        f"'{recipient}'"
+        for recipient in recipients
+    )
+
+    email = Email(
+        sender=user.username,
+        recipients=recipients_text,
+        subject=subject,
+        text=text,
+        body=body
+    )
+
+    db.session.add(email)
+    db.session.commit()
 
     return response.json()
 
@@ -207,7 +250,8 @@ def make_shell_context():
     return dict(
         db=db,
         User=User,
-        Role=Role
+        Role=Role,
+        Email=Email
     )
 
 
@@ -232,8 +276,6 @@ def index():
 
     form = NameForm()
 
-    roles_dictionary = create_default_roles()
-
     if form.validate_on_submit():
 
         username = form.name.data.strip()
@@ -242,15 +284,15 @@ def index():
             username=username
         ).first()
 
+        session['email_sent'] = False
+
         if user is None:
 
-            selected_role = roles_dictionary[
-                form.role.data
-            ]
+            user_role = get_user_role()
 
             user = User(
                 username=username,
-                role=selected_role
+                role=user_role
             )
 
             db.session.add(user)
@@ -258,24 +300,30 @@ def index():
 
             session['known'] = False
 
+            recipients = [
+                FLASKY_ADMIN
+            ]
+
+            if form.send_professor.data:
+
+                recipients.append(
+                    PROFESSOR_EMAIL
+                )
+
             try:
 
-                send_registration_email(user)
-
-                flash(
-                    'Usuário cadastrado e e-mail enviado.'
+                send_registration_email(
+                    user,
+                    recipients
                 )
+
+                session['email_sent'] = True
 
             except Exception as error:
 
                 print(
                     'Erro ao enviar e-mail:',
                     error
-                )
-
-                flash(
-                    'Usuário cadastrado, mas ocorreu '
-                    'um erro no envio do e-mail.'
                 )
 
         else:
@@ -318,11 +366,25 @@ def index():
         form=form,
         name=session.get('name'),
         known=session.get('known', False),
+        email_sent=session.get('email_sent', False),
         users=users,
         roles=roles,
         users_count=users_count,
         roles_count=roles_count,
         grouped_roles=grouped_roles
+    )
+
+
+@app.route('/emailsEnviados')
+def emails_enviados():
+
+    emails = Email.query.order_by(
+        Email.timestamp.desc()
+    ).all()
+
+    return render_template(
+        'emailsEnviados.html',
+        emails=emails
     )
 
 
